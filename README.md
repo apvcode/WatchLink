@@ -85,7 +85,7 @@ docs/                decisions, verification log
 
 ## Install
 
-> Prebuilt binaries are not published yet. Build them from source (see below); release downloads will appear on the [Releases](https://github.com/apvcode/WatchLink/releases) page.
+Download the files for your system from the [Releases](https://github.com/apvcode/WatchLink/releases) page (Linux AppImage / tar.gz, Windows installer / zip, Android APK), or build from source (see below).
 
 **Windows (x64):** run `watchlink-0.2.0-setup.exe` (per-user installer, no admin rights needed), or unpack `watchlink-0.2.0-win-x64.zip` and start `WatchLink.exe`. The build is unsigned, so SmartScreen shows "Windows protected your PC": choose *More info → Run anyway*.
 
@@ -124,6 +124,10 @@ pnpm package:android        # release APK (needs your own keystore)
 ```
 
 Release signing uses a keystore you provide through `WATCHLINK_KEYSTORE`; keystores, `.env` files and build output are git-ignored.
+
+### Releases
+
+Pushing a tag such as `v0.3.0` starts the [Release workflow](.github/workflows/release.yml): it runs the checks, builds Linux, Windows and Android, and attaches the files and `SHA256SUMS` to the GitHub Release. The Google Drive keys and the Android keystore come from repository secrets (listed at the top of the workflow file); without them the files are only kept as workflow artifacts.
 
 ### Checks
 

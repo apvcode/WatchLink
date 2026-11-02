@@ -1,0 +1,159 @@
+# Builds WatchLink for Linux, Windows and Android and attaches the files to a GitHub Release.
+#
+# Run it by pushing a tag (git tag v0.3.0 && git push origin v0.3.0) or manually from the Actions tab.
+#
+# Repository secrets (Settings -> Secrets and variables -> Actions). All optional: without the
+# Google ones the apps build with Drive sign-in disabled, and in that case the release itself is
+# left untouched (the files are only kept as workflow artifacts).
+#   WATCHLINK_GOOGLE_DESKTOP_CLIENT_ID / WATCHLINK_GOOGLE_DESKTOP_CLIENT_SECRET   desktop OAuth client
+#   ANDROID_KEYSTORE_BASE64      base64 of the release keystore:  base64 -w0 watchlink.keystore
+#   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the files to (for example v0.2.0)
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+  WATCHLINK_GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.WATCHLINK_GOOGLE_DESKTOP_CLIENT_ID }}
+  WATCHLINK_GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.WATCHLINK_GOOGLE_DESKTOP_CLIENT_SECRET }}
+
+jobs:
+  checks:
+    name: Lint, types, tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec biome check --diagnostic-level=error .
+      - run: pnpm typecheck
+      - run: pnpm test:unit
+
+  linux:
+    name: Linux (AppImage, tar.gz)
+    needs: checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @watchlink/desktop exec electron-builder --linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/watchlink-*.AppImage
+            dist/watchlink-*.tar.gz
+
+  windows:
+    name: Windows (installer, zip)
+    needs: checks
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @watchlink/desktop exec electron-builder --win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/watchlink-*-setup.exe
+            dist/watchlink-*-win-x64.zip
+
+  android:
+    name: Android (APK)
+    needs: checks
+    runs-on: ubuntu-24.04
+    env:
+      WATCHLINK_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      WATCHLINK_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      WATCHLINK_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: pnpm install --frozen-lockfile
+      - name: Restore the release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "No keystore secret: the APK cannot be signed."; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/watchlink.keystore"
+          echo "WATCHLINK_KEYSTORE=$RUNNER_TEMP/watchlink.keystore" >> "$GITHUB_ENV"
+      - run: ./gradlew assembleRelease
+        working-directory: apps/android
+      - run: cp apps/android/app/build/outputs/apk/release/app-release.apk "watchlink-${TAG#v}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: watchlink-*.apk
+
+  publish:
+    name: Attach files to the release
+    needs: [linux, windows, android]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - name: Checksums
+        run: cd files && sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - name: Create or update the release
+        # Only when the Google keys are configured; otherwise the builds lack Drive sign-in and
+        # must not replace files that were published by hand.
+        if: env.WATCHLINK_GOOGLE_DESKTOP_CLIENT_ID != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" files/* --clobber
+          else
+            gh release create "$TAG" files/* --title "WatchLink ${TAG#v}" --generate-notes
+          fi
