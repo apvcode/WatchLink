@@ -419,3 +419,19 @@
     animation: none !important;
   }
 }
+
+.drive-confirm .btn:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.drive-confirm .btn.busy svg {
+  animation: acct-spin 1s linear infinite;
+}
+.drive-confirm .link-btn {
+  align-self: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drive-confirm .btn.busy svg {
+    animation: none;
+  }
+}

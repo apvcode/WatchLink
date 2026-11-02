@@ -165,6 +165,41 @@ export class DriveClient {
     );
   }
 
+  /** Makes a file readable by anyone who has its link (not listed in search). */
+  async makePublic(id: string): Promise<void> {
+    await this.send(
+      'POST',
+      `${API}/files/${encodeURIComponent(id)}/permissions?supportsAllDrives=true`,
+      { type: 'anyone', role: 'reader', allowFileDiscovery: false },
+    );
+  }
+
+  /** Closes link sharing again (the "anyone" permission always has this fixed id). */
+  async makePrivate(id: string): Promise<void> {
+    await this.send(
+      'DELETE',
+      `${API}/files/${encodeURIComponent(id)}/permissions/anyoneWithLink?supportsAllDrives=true`,
+    );
+  }
+
+  private async send(method: string, url: string, body?: unknown): Promise<void> {
+    for (const force of [false, true]) {
+      const headers: Record<string, string> = {
+        authorization: `Bearer ${await this.getToken(force)}`,
+      };
+      if (body) headers['content-type'] = 'application/json';
+      const response = await this.fetchImpl(url, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (response.status === 401 && !force) continue;
+      if (!response.ok) throw new DriveError(response.status);
+      return;
+    }
+    throw new DriveError(401);
+  }
+
   private async get(url: string, resourceKeys?: Record<string, string>): Promise<unknown> {
     for (const force of [false, true]) {
       const headers: Record<string, string> = {

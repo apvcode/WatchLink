@@ -13,6 +13,8 @@ export const GOOGLE_SCOPES = [
   'profile',
   'https://www.googleapis.com/auth/drive.readonly',
 ];
+/** Needed only to change a file's sharing; requested on demand, never at first sign-in. */
+export const DRIVE_FULL_SCOPE = 'https://www.googleapis.com/auth/drive';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
@@ -80,13 +82,16 @@ export function buildAuthUrl(params: {
   challenge: string;
   state: string;
   loginHint?: string;
+  extraScopes?: string[];
 }): string {
   const url = new URL(AUTH_URL);
   const query: Record<string, string> = {
     client_id: params.clientId,
     redirect_uri: params.redirectUri,
     response_type: 'code',
-    scope: GOOGLE_SCOPES.join(' '),
+    scope: [...GOOGLE_SCOPES, ...(params.extraScopes ?? [])].join(' '),
+    // keep what the user already granted when asking for one more permission
+    include_granted_scopes: 'true',
     code_challenge: params.challenge,
     code_challenge_method: 'S256',
     state: params.state,
@@ -124,7 +129,7 @@ export class GoogleAuth {
   }
 
   /** Opens the system browser, waits for the redirect, stores the tokens. */
-  async signIn(): Promise<GoogleStatus> {
+  async signIn(extraScopes: string[] = []): Promise<GoogleStatus> {
     this.cancelSignIn();
     const { verifier, challenge } = createPkce();
     const state = b64url(randomBytes(16));
@@ -182,6 +187,7 @@ export class GoogleAuth {
             challenge,
             state,
             loginHint: existing?.profile?.email,
+            extraScopes,
           });
           Promise.resolve(this.options.openBrowser(url)).catch(() =>
             done(new GoogleAuthError('exchange', 'cannot open browser')),
@@ -208,6 +214,12 @@ export class GoogleAuth {
     await this.options.store.save(tokens);
     this.relink = false;
     return this.status();
+  }
+
+  /** Whether the saved grant includes the given scope. */
+  async hasScope(scope: string): Promise<boolean> {
+    const tokens = await this.options.store.load();
+    return Boolean(tokens?.scope?.split(' ').includes(scope));
   }
 
   cancelSignIn(): void {

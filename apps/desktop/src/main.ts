@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BaseWindow, clipboard, ipcMain, Menu, shell, WebContentsView } from 'electron';
 import { DriveClient, type DriveView, driveFileId } from './drive.js';
 import { DriveProxy } from './drive-proxy.js';
-import { GoogleAuth, type GoogleAuthError } from './google-auth.js';
+import { DRIVE_FULL_SCOPE, GoogleAuth, type GoogleAuthError } from './google-auth.js';
 import { fileTokenStore } from './token-store.js';
 
 // Injected at build time from .env (see scripts/build-desktop.mjs); empty when not configured.
@@ -62,6 +62,17 @@ async function googleRequest(data: Record<string, unknown>) {
         pageToken: shortText(data.pageToken, 2000),
       });
       notify({ type: 'google:list', id, ...result });
+    } else if (data.action === 'share') {
+      const fileId = driveFileId(String(data.url ?? ''));
+      if (!fileId) return notify({ type: 'google:share', id, error: 'bad-url' });
+      // Changing sharing needs a wider permission: ask for it now, once, not at first sign-in.
+      if (!(await google.hasScope(DRIVE_FULL_SCOPE))) {
+        await google.signIn([DRIVE_FULL_SCOPE]);
+        await googleStatus();
+      }
+      if (data.close === true) await drive.makePrivate(fileId);
+      else await drive.makePublic(fileId);
+      notify({ type: 'google:share', id, ok: true });
     } else if (data.action === 'stream') {
       const fileId = driveFileId(String(data.url ?? ''));
       if (!fileId) return notify({ type: 'google:stream', id, error: 'bad-url' });
@@ -231,7 +242,8 @@ app.whenReady().then(async () => {
     }
     if (data.type === 'google') {
       if (data.action === 'status') void googleStatus();
-      if (data.action === 'list' || data.action === 'stream') void googleRequest(data);
+      if (data.action === 'list' || data.action === 'stream' || data.action === 'share')
+        void googleRequest(data);
       if (data.action === 'cancel') google.cancelSignIn();
       if (data.action === 'unlink') void google.signOut().then(() => googleStatus());
       if (data.action === 'link' && __GOOGLE_CLIENT_ID__)

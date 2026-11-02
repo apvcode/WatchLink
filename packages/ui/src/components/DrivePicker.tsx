@@ -38,6 +38,8 @@ export function DrivePicker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState<DriveItem | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState('');
   const run = useRef(0);
   const sentinel = useRef<HTMLDivElement>(null);
 
@@ -92,8 +94,29 @@ export function DrivePicker({
       setQuery('');
       setTab('mine');
       setPath((p) => [...p, { id: file.id, name: file.name }]);
-    } else if (file.access === 'private') setConfirm(file);
-    else onPick(driveShareUrl(file.id, file.resourceKey));
+    } else if (file.access === 'private') {
+      setShareError('');
+      setConfirm(file);
+    } else onPick(driveShareUrl(file.id, file.resourceKey));
+  };
+
+  const shareAndCreate = (file: DriveItem) => {
+    const url = driveShareUrl(file.id, file.resourceKey);
+    setSharing(true);
+    setShareError('');
+    google
+      .share(url)
+      .then(() => onPick(url))
+      .catch((e: Error) =>
+        setShareError(
+          e.message === '403' || e.message === '404'
+            ? t('driveShareDenied')
+            : e.message === 'cancelled' || e.message === 'denied'
+              ? t('driveShareCancelled')
+              : t('driveShareFailed'),
+        ),
+      )
+      .finally(() => setSharing(false));
   };
 
   const blocked = error === 'not-linked' || error === '401';
@@ -220,7 +243,7 @@ export function DrivePicker({
         <div
           class="scrim"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setConfirm(null);
+            if (e.target === e.currentTarget && !sharing) setConfirm(null);
           }}
         >
           <div class="sheet drive-confirm" role="dialog" aria-label={t('drivePrivateTitle')}>
@@ -229,19 +252,29 @@ export function DrivePicker({
             <p>{t('drivePrivateSub')}</p>
             <button
               type="button"
-              class="btn"
-              onClick={() => google.openExternal(driveShareUrl(confirm.id, confirm.resourceKey))}
+              class={`btn btn-primary${sharing ? ' busy' : ''}`}
+              disabled={sharing}
+              onClick={() => shareAndCreate(confirm)}
             >
               <Icon name="globe" size={16} />
-              {t('driveOpenSharing')}
+              {sharing ? t('driveSharing') : t('driveMakePublic')}
             </button>
+            {shareError && <p class="drive-err">{shareError}</p>}
             <button
               type="button"
-              class="btn btn-primary"
+              class="btn"
+              disabled={sharing}
               onClick={() => onPick(driveShareUrl(confirm.id, confirm.resourceKey))}
             >
               <Icon name="play" size={16} />
               {t('drivePrivateAnyway')}
+            </button>
+            <button
+              type="button"
+              class="link-btn"
+              onClick={() => google.openExternal(driveShareUrl(confirm.id, confirm.resourceKey))}
+            >
+              {t('driveOpenSharing')}
             </button>
           </div>
         </div>

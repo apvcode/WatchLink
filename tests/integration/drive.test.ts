@@ -111,6 +111,49 @@ describe('DriveClient', () => {
   });
 });
 
+describe('DriveClient sharing', () => {
+  it('opens link sharing without listing the file in search', async () => {
+    const seen: Array<{ url: string; method?: string; body?: string }> = [];
+    const client = new DriveClient(
+      async () => 't',
+      async (url, init) => {
+        seen.push({ url: String(url), method: init?.method, body: String(init?.body) });
+        return new Response('{}', { status: 200 });
+      },
+    );
+    await client.makePublic(FILE_ID);
+    expect(seen[0]?.method).toBe('POST');
+    expect(seen[0]?.url).toContain(`/files/${FILE_ID}/permissions`);
+    expect(JSON.parse(seen[0]?.body ?? '{}')).toEqual({
+      type: 'anyone',
+      role: 'reader',
+      allowFileDiscovery: false,
+    });
+  });
+
+  it('closes link sharing by deleting the anyone permission', async () => {
+    const seen: Array<{ url: string; method?: string }> = [];
+    const client = new DriveClient(
+      async () => 't',
+      async (url, init) => {
+        seen.push({ url: String(url), method: init?.method });
+        return new Response(null, { status: 204 });
+      },
+    );
+    await client.makePrivate(FILE_ID);
+    expect(seen[0]).toMatchObject({ method: 'DELETE' });
+    expect(seen[0]?.url).toContain('/permissions/anyoneWithLink');
+  });
+
+  it('surfaces a refusal (not the owner) with its status', async () => {
+    const client = new DriveClient(
+      async () => 't',
+      async () => new Response('{}', { status: 403 }),
+    );
+    await expect(client.makePublic(FILE_ID)).rejects.toMatchObject({ status: 403 });
+  });
+});
+
 describe('DriveProxy', () => {
   let proxy: DriveProxy | null = null;
   afterEach(async () => {

@@ -53,7 +53,11 @@ function start(): void {
       });
       return;
     }
-    if (message.type === 'google:list' || message.type === 'google:stream') {
+    if (
+      message.type === 'google:list' ||
+      message.type === 'google:stream' ||
+      message.type === 'google:share'
+    ) {
       const request = pending.get(message.id);
       if (!request) return;
       pending.delete(message.id);
@@ -65,14 +69,18 @@ function start(): void {
   host.send({ type: 'google', action: 'status' });
 }
 
-function call<T>(action: 'list' | 'stream', payload: Record<string, unknown>): Promise<T> {
+function call<T>(
+  action: 'list' | 'stream' | 'share',
+  payload: Record<string, unknown>,
+  timeoutMs = 30_000,
+): Promise<T> {
   start();
   const id = nextId++;
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       pending.delete(id);
       reject(new Error('timeout'));
-    }, 30_000);
+    }, timeoutMs);
     pending.set(id, { resolve: resolve as (value: never) => void, reject, timer });
     host.send({ type: 'google', action, id, ...payload });
   });
@@ -94,6 +102,12 @@ export const google = {
   /** Local player URL for a Drive file; rejects when no account is linked. */
   stream: (url: string): Promise<string> =>
     call<{ url: string }>('stream', { url }).then((reply) => reply.url),
+  /**
+   * Opens (or, with close=true, closes) link sharing for a Drive file. The first time Google asks
+   * for a wider permission in the browser, hence the long timeout.
+   */
+  share: (url: string, close = false): Promise<void> =>
+    call<unknown>('share', { url, close }, 5 * 60_000).then(() => undefined),
   openExternal(url: string): void {
     host.send({ type: 'open', url });
   },

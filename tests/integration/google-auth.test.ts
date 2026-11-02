@@ -80,6 +80,37 @@ describe('PKCE and authorization URL', () => {
   });
 });
 
+describe('incremental permission', () => {
+  it('adds the extra scope and keeps earlier grants', () => {
+    const url = new URL(
+      buildAuthUrl({
+        clientId: 'c',
+        redirectUri: 'http://127.0.0.1:1/oauth2callback',
+        challenge: 'ch',
+        state: 's',
+        extraScopes: ['https://www.googleapis.com/auth/drive'],
+      }),
+    );
+    expect(url.searchParams.get('scope')).toContain('auth/drive.readonly');
+    expect(url.searchParams.get('scope')).toContain('auth/drive');
+    expect(url.searchParams.get('include_granted_scopes')).toBe('true');
+  });
+
+  it('reports which scopes the saved grant has', async () => {
+    const auth = new GoogleAuth({
+      clientId: 'c',
+      store: memoryStore({
+        refreshToken: 'r',
+        scope: 'openid https://www.googleapis.com/auth/drive.readonly',
+      }),
+      fetch: fakeGoogle().fetch,
+      openBrowser: () => undefined,
+    });
+    expect(await auth.hasScope('https://www.googleapis.com/auth/drive.readonly')).toBe(true);
+    expect(await auth.hasScope('https://www.googleapis.com/auth/drive')).toBe(false);
+  });
+});
+
 describe('GoogleAuth sign-in', () => {
   it('completes the loopback flow and stores tokens and profile', async () => {
     const { fetch, calls } = fakeGoogle();
