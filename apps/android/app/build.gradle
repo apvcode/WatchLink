@@ -1,0 +1,78 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'link.watch.app'
+    compileSdk 34
+    buildFeatures { buildConfig true }
+
+    defaultConfig {
+        applicationId "com.apvcode.watchlink"
+        minSdk 26
+        targetSdk 34
+        versionCode 2
+        versionName "0.2.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('WATCHLINK_KEYSTORE') ?: 'watchlink.keystore')
+            storePassword System.getenv('WATCHLINK_STORE_PASSWORD')
+            keyAlias System.getenv('WATCHLINK_KEY_ALIAS') ?: 'watchlink'
+            keyPassword System.getenv('WATCHLINK_KEY_PASSWORD')
+        }
+    }
+
+    buildTypes {
+        release {
+            manifestPlaceholders = [cleartextTraffic: "false"]
+            minifyEnabled false
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            manifestPlaceholders = [cleartextTraffic: "true"]
+            applicationIdSuffix ".debug"
+            debuggable true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.webkit:webkit:1.12.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+}
+
+// Build the web assets from source for every APK, avoiding stale UI bundles.
+tasks.register('buildWebAssets', Exec) {
+    workingDir rootProject.projectDir.parentFile.parentFile
+    commandLine 'bash', '-c', 'pnpm --filter @watchlink/adapters build && pnpm --filter @watchlink/ui build'
+}
+// Sync (not Copy): deletes bundles left over from earlier builds so they don't bloat the APK.
+tasks.register('copyWebAssets', Sync) {
+    dependsOn 'buildWebAssets'
+    from('../../../packages/ui/dist') { into 'www' }
+    from('../../../packages/adapters/dist/content-bridge.global.js')
+    into 'src/main/assets'
+}
+tasks.named('preBuild').configure { dependsOn 'copyWebAssets' }

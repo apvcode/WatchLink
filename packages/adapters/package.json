@@ -1,0 +1,13 @@
+{
+  "name": "@watchlink/adapters",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc && vite build -c vite.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

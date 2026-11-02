@@ -1,0 +1,34 @@
+# Maintainer: apvcode
+pkgname=watchlink-bin
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Zero-server peer-to-peer watch together application"
+arch=('x86_64')
+url="https://github.com/apvcode/WatchLink"
+license=('MIT')
+depends=('gtk3' 'nss' 'alsa-lib' 'libxss')
+provides=('watchlink')
+conflicts=('watchlink')
+source=("watchlink-$pkgver.tar.gz"
+        "watchlink.desktop"
+        "watchlink.png")
+sha256sums=('f198ab10cca5c244953bcff77221428e0025527905e490260897aadffb9b62a0'
+            'SKIP'
+            'SKIP')
+
+package() {
+    # Install application files to /opt/watchlink
+    install -d "${pkgdir}/opt/watchlink"
+    cp -r "${srcdir}/watchlink-${pkgver}/"* "${pkgdir}/opt/watchlink/"
+    chmod 755 "${pkgdir}/opt/watchlink/watchlink"
+
+    # Install binary launcher symlink to /usr/bin/watchlink
+    install -d "${pkgdir}/usr/bin"
+    ln -s "/opt/watchlink/watchlink" "${pkgdir}/usr/bin/watchlink"
+
+    # Install desktop entry
+    install -Dm644 "${srcdir}/watchlink.desktop" "${pkgdir}/usr/share/applications/watchlink.desktop"
+
+    # Install icon
+    install -Dm644 "${srcdir}/watchlink.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/watchlink.png"
+}

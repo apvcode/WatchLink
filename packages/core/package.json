@@ -1,0 +1,24 @@
+{
+  "name": "@watchlink/core",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:sim": "vitest run src/__tests__/simulation.test.ts"
+  },
+  "dependencies": {
+    "@trystero-p2p/mqtt": "0.26.0",
+    "@trystero-p2p/nostr": "0.26.0",
+    "trystero": "0.26.0"
+  },
+  "devDependencies": {
+    "@trystero-p2p/ws-relay": "0.26.0",
+    "ws": "8.18.0"
+  }
+}

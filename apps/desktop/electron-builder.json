@@ -1,0 +1,50 @@
+{
+  "appId": "com.apvcode.watchlink",
+  "productName": "WatchLink",
+  "directories": {
+    "output": "../../dist"
+  },
+  "files": ["dist/**/*", "package.json"],
+  "extraMetadata": {
+    "main": "dist/main.js"
+  },
+  "linux": {
+    "executableName": "watchlink",
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": ["x64"]
+      },
+      {
+        "target": "tar.gz",
+        "arch": ["x64"]
+      }
+    ],
+    "category": "AudioVideo",
+    "icon": "build/icon.png",
+    "artifactName": "watchlink-${version}.${ext}"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "build/icon.png",
+    "artifactName": "watchlink-${version}-win-${arch}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "WatchLink",
+    "artifactName": "watchlink-${version}-setup.${ext}"
+  }
+}

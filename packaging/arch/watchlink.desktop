@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=WatchLink
+Comment=Zero-server peer-to-peer watch together application
+Exec=watchlink %U
+Terminal=false
+Type=Application
+Icon=watchlink
+Categories=AudioVideo;Player;
+MimeType=x-scheme-handler/wl;
+StartupWMClass=watchlink

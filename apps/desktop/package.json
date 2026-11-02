@@ -1,0 +1,25 @@
+{
+  "name": "@watchlink/desktop",
+  "version": "0.2.0",
+  "description": "Peer-to-peer watch together desktop application",
+  "author": "WatchLink",
+  "private": true,
+  "main": "./dist/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron .",
+    "build": "node ../../scripts/build-desktop.mjs",
+    "typecheck": "tsc --noEmit",
+    "package": "pnpm run build && electron-builder --linux",
+    "package:win": "pnpm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "@watchlink/adapters": "workspace:*",
+    "@watchlink/core": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "35.7.5",
+    "electron-builder": "25.1.8",
+    "typescript": "^5.7.3"
+  }
+}

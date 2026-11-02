@@ -1,0 +1,38 @@
+{
+  "name": "watchlink-monorepo",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Peer-to-peer watch together app for Linux and Android",
+  "type": "module",
+  "scripts": {
+    "doctor": "bash scripts/doctor.sh",
+    "verify": "bash scripts/verify.sh",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -r --parallel run typecheck",
+    "build": "pnpm --filter @watchlink/core build && pnpm --filter @watchlink/adapters build && pnpm --filter @watchlink/ui build && pnpm --filter @watchlink/desktop build",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run --coverage",
+    "test:sim": "vitest run packages/core/src/__tests__/simulation.test.ts",
+    "test:security": "vitest run tests/security/",
+    "test:e2e": "playwright test",
+    "test:live": "node scripts/live-check.mjs",
+    "package:desktop": "pnpm --filter @watchlink/desktop run package",
+    "package:desktop:win": "pnpm --filter @watchlink/desktop run package:win",
+    "package:android": "cd apps/android && ./gradlew assembleRelease",
+    "package:all": "pnpm run package:desktop && pnpm run package:android"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.3",
+    "@types/node": "22.13.4",
+    "@vitest/coverage-v8": "3.0.5",
+    "esbuild": "0.25.12",
+    "happy-dom": "^21.0.4",
+    "playwright": "1.50.1",
+    "typescript": "5.7.3",
+    "vite": "^8.3.5",
+    "vitest": "3.0.5"
+  },
+  "license": "MIT",
+  "author": "apvcode"
+}
