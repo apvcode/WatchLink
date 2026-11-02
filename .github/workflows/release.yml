@@ -37,13 +37,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: 24
+      # The workspace config needs the same pnpm major as local development.
+      - run: npm install -g pnpm@12.15.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec biome check --diagnostic-level=error .
       - run: pnpm typecheck
@@ -55,13 +53,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: 24
+      # The workspace config needs the same pnpm major as local development.
+      - run: npm install -g pnpm@12.15.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm --filter @watchlink/desktop exec electron-builder --linux
@@ -78,13 +74,11 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: 24
+      # The workspace config needs the same pnpm major as local development.
+      - run: npm install -g pnpm@12.15.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm --filter @watchlink/desktop exec electron-builder --win
@@ -105,13 +99,11 @@ jobs:
       WATCHLINK_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: 24
+      # The workspace config needs the same pnpm major as local development.
+      - run: npm install -g pnpm@12.15.0
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
