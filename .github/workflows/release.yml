@@ -112,7 +112,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      # The runner image already ships the Android SDK; only the licences need accepting.
+      - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - run: pnpm install --frozen-lockfile
       - name: Restore the release keystore
         env:
