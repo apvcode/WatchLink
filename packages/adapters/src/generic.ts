@@ -36,6 +36,26 @@ export function findBestVideoElement(document: Document): HTMLVideoElement | nul
   return bestVideo || (videos.length > 0 && videos[0] ? videos[0] : null);
 }
 
+/**
+ * Calls a method of an embedded YouTube-style player (#movie_player) in the page's own JS world.
+ * Google Drive plays videos through such an embed (youtube.googleapis.com/embed).
+ */
+function callMoviePlayer(win: Window, method: string): Promise<unknown> {
+  const w = win as unknown as { __watchlink_main?: (code: string) => Promise<unknown> };
+  if (typeof w.__watchlink_main === 'function')
+    return w.__watchlink_main(
+      `(()=>{const p=document.getElementById('movie_player');return p&&typeof p.${method}==='function'?p.${method}():null})()`,
+    );
+  const p = win.document?.getElementById('movie_player') as unknown as Record<
+    string,
+    (() => unknown) | undefined
+  > | null;
+  return Promise.resolve(p?.[method]?.());
+}
+
+/** How long a cued player may take to produce its first frame before we give up waiting. */
+const WAKE_TIMEOUT_MS = 8000;
+
 export class GenericVideoController implements PlayerController {
   private video: HTMLVideoElement | null = null;
   private win: Window;
@@ -47,6 +67,7 @@ export class GenericVideoController implements PlayerController {
   private lastTimeUpdate = 0;
   private isBufferingState = false;
   private isDisposed = false;
+  private woke = false;
 
   constructor(win: Window, initialVideo: HTMLVideoElement | null) {
     this.win = win;
@@ -166,7 +187,76 @@ export class GenericVideoController implements PlayerController {
     video.addEventListener('timeupdate', this.onTimeUpdate);
 
     this.emitState('program');
+    void this.prepareCuedPlayer();
   }
+
+  /**
+   * An embedded player that is only "cued" has a <video> without any source until someone presses
+   * play, so no duration ever reaches the room. That is how Drive's player starts on phones.
+   * Start it muted just long enough to load the source, then pause it again.
+   */
+  private isCued(): boolean {
+    const video = this.video;
+    return Boolean(
+      video &&
+        !video.currentSrc &&
+        !video.src &&
+        video.readyState === 0 &&
+        this.win.document?.getElementById('movie_player'),
+    );
+  }
+
+  private waitForData(video: HTMLVideoElement, timeoutMs = WAKE_TIMEOUT_MS): Promise<void> {
+    if (video.readyState >= 2) return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        video.removeEventListener('loadeddata', done);
+        resolve();
+      };
+      const timer = setTimeout(done, timeoutMs);
+      video.addEventListener('loadeddata', done);
+    });
+  }
+
+  /**
+   * Waits until the embedded player has finished initialising and is cued (state 5): commands sent
+   * earlier are silently dropped. Gives up when it is already loading by itself.
+   */
+  private async waitUntilCued(): Promise<boolean> {
+    for (let i = 0; i < 40 && !this.isDisposed; i++) {
+      const state = await callMoviePlayer(this.win, 'getPlayerState').catch(() => null);
+      if (state === 5) return true;
+      if (state === 1 || state === 2 || state === 3) return false;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    return false;
+  }
+
+  /** The player often ignores the first playVideo() right after it reports "cued": retry. */
+  private async startCued(video: HTMLVideoElement): Promise<void> {
+    for (let attempt = 0; attempt < 10 && !this.isDisposed; attempt++) {
+      await callMoviePlayer(this.win, 'playVideo');
+      await this.waitForData(video, 1500);
+      if (video.readyState >= 2 || video.currentSrc) return;
+    }
+  }
+
+  private async prepareCuedPlayer(): Promise<void> {
+    const video = this.video;
+    if (this.woke || !video || !this.isCued()) return;
+    this.woke = true;
+    if (!(await this.waitUntilCued()) || this.wakeKept) return;
+    this.markProgrammatic();
+    await callMoviePlayer(this.win, 'mute');
+    await this.startCued(video);
+    // Someone asked for real playback meanwhile (play()): leave it running.
+    if (this.isDisposed || this.wakeKept) return;
+    this.markProgrammatic();
+    await callMoviePlayer(this.win, 'pauseVideo');
+    await callMoviePlayer(this.win, 'unMute');
+  }
+  private wakeKept = false;
 
   private unbindVideo() {
     if (!this.video) return;
@@ -202,6 +292,16 @@ export class GenericVideoController implements PlayerController {
 
   public async play(): Promise<void> {
     if (!this.video) return;
+    if (this.isCued() || (this.woke && !this.video.currentSrc && !this.video.readyState)) {
+      // Not loaded yet: let the embedded player start itself, it then plays for real.
+      this.wakeKept = true;
+      await this.waitUntilCued();
+      this.markProgrammatic();
+      await callMoviePlayer(this.win, 'unMute');
+      await callMoviePlayer(this.win, 'playVideo');
+      await this.startCued(this.video);
+      return;
+    }
     this.markProgrammatic();
     if (this.video.muted) this.video.muted = false;
     try {

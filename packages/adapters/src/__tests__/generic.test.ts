@@ -122,3 +122,62 @@ describe('GenericAdapter and Controller', () => {
     controller.dispose();
   });
 });
+
+describe('cued embedded player (Google Drive on phones)', () => {
+  /** A cued player; `loadsOnPlay` makes playVideo() deliver data like the real embed does. */
+  function cuedPage(loadsOnPlay: boolean) {
+    document.body.innerHTML = '';
+    const calls: string[] = [];
+    const player = document.createElement('div');
+    player.id = 'movie_player';
+    const video = document.createElement('video');
+    Object.defineProperty(video, 'readyState', { value: 0, writable: true, configurable: true });
+    const load = () => {
+      Object.defineProperty(video, 'readyState', { value: 4, configurable: true });
+      video.dispatchEvent(new Event('loadeddata'));
+    };
+    const api = player as unknown as Record<string, () => unknown>;
+    api.getPlayerState = () => 5;
+    for (const method of ['mute', 'unMute', 'pauseVideo'])
+      api[method] = () => {
+        calls.push(method);
+      };
+    api.playVideo = () => {
+      calls.push('playVideo');
+      if (loadsOnPlay) setTimeout(load, 5);
+    };
+    player.appendChild(video);
+    document.body.appendChild(player);
+    return { calls, video, load };
+  }
+  const tick = (ms = 40) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  it('starts the player muted to load it, then pauses it again', async () => {
+    const { calls, video } = cuedPage(true);
+    const controller = new GenericVideoController(window, video);
+    await tick(600);
+    expect(calls).toEqual(['mute', 'playVideo', 'pauseVideo', 'unMute']);
+    controller.dispose();
+  });
+
+  it('keeps playing when play() arrives while the player is still being woken', async () => {
+    const { calls, video, load } = cuedPage(false);
+    const controller = new GenericVideoController(window, video);
+    await tick(400);
+    const playing = controller.play();
+    await tick(400);
+    load();
+    await playing;
+    await tick(100);
+    expect(calls).not.toContain('pauseVideo');
+    expect(calls.filter((c) => c === 'playVideo').length).toBeGreaterThanOrEqual(2);
+    controller.dispose();
+  });
+
+  it('leaves ordinary pages alone', async () => {
+    document.body.innerHTML = '<video></video>';
+    const controller = new GenericVideoController(window, document.querySelector('video'));
+    await tick();
+    controller.dispose();
+  });
+});

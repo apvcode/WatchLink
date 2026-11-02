@@ -163,6 +163,9 @@ app.whenReady().then(async () => {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      // The player of several sites (VK, Google Drive) lives in an iframe: the bridge must run there too.
+      // Still sandboxed with context isolation, so page scripts get no Node access.
+      nodeIntegrationInSubFrames: true,
     },
   });
   ui = new WebContentsView({
