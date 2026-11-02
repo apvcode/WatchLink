@@ -45,7 +45,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec biome check --diagnostic-level=error .
       - run: pnpm typecheck
-      - run: pnpm test:unit
+      # The sandbox test starts a real Electron: it needs a display and, on Ubuntu 24, unprivileged user namespaces.
+      - run: |
+          sudo apt-get update && sudo apt-get install -y xvfb
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: xvfb-run -a pnpm test:unit
 
   linux:
     name: Linux (AppImage, tar.gz)
