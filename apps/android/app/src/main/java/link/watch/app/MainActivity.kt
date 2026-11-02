@@ -302,6 +302,19 @@ class MainActivity : AppCompatActivity() {
                 "exit" -> finish()
                 "clear" -> { contentContainer.visibility = View.GONE; activeReply = null; activeIsMainFrame = false; contentWebView.loadUrl("about:blank") }
                 "service" -> setPlaybackService(json.optBoolean("on"))
+                // Google Drive sign-in is not available on Android yet: answer at once so the UI
+                // falls back to the public link instead of waiting for a reply that never comes.
+                "google" -> {
+                    val action = json.optString("action")
+                    val reply = JSONObject()
+                    if (action == "list" || action == "stream" || action == "share") {
+                        reply.put("type", "google:$action").put("id", json.optInt("id")).put("error", "not-linked")
+                    } else {
+                        reply.put("type", "google:status").put("configured", false)
+                            .put("linked", false).put("needsRelink", false)
+                    }
+                    forwardToUi(reply.toString())
+                }
                 "ready" -> pendingInvite?.let { code ->
                     forwardToUi(JSONObject().put("type", "watchlink:host:join").put("roomCode", code).toString())
                     pendingInvite = null

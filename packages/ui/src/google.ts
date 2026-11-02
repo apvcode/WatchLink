@@ -32,6 +32,24 @@ const pending = new Map<
 >();
 let nextId = 1;
 let started = false;
+/** The host answered the first status request. Hosts without Google support never answer. */
+let statusSeen = false;
+let unsupported = false;
+let waiters: Array<() => void> = [];
+const HOST_ANSWER_MS = 1500;
+
+function flushWaiters(): void {
+  const list = waiters;
+  waiters = [];
+  for (const wake of list) wake();
+}
+
+/** Resolves once we know whether the host supports Google (answer or timeout). */
+function whenHostKnown(): Promise<void> {
+  start();
+  if (statusSeen || unsupported) return Promise.resolve();
+  return new Promise((resolve) => waiters.push(resolve));
+}
 
 function set(patch: Partial<GoogleState>): void {
   state = { ...state, ...patch };
@@ -43,6 +61,8 @@ function start(): void {
   started = true;
   host.subscribe((message) => {
     if (message.type === 'google:status') {
+      statusSeen = true;
+      flushWaiters();
       set({
         configured: Boolean(message.configured),
         linked: Boolean(message.linked),
@@ -67,6 +87,11 @@ function start(): void {
     }
   });
   host.send({ type: 'google', action: 'status' });
+  setTimeout(() => {
+    if (statusSeen) return;
+    unsupported = true;
+    flushWaiters();
+  }, HOST_ANSWER_MS);
 }
 
 function call<T>(
@@ -98,16 +123,27 @@ export const google = {
   unlink(): void {
     host.send({ type: 'google', action: 'unlink' });
   },
-  list: (request: DriveListRequest): Promise<DriveListResult> => call('list', { ...request }),
+  list: (request: DriveListRequest): Promise<DriveListResult> =>
+    whenHostKnown().then(() =>
+      unsupported ? Promise.reject(new Error('not-linked')) : call('list', { ...request }),
+    ),
   /** Local player URL for a Drive file; rejects when no account is linked. */
   stream: (url: string): Promise<string> =>
-    call<{ url: string }>('stream', { url }).then((reply) => reply.url),
+    whenHostKnown().then(() =>
+      unsupported || !state.configured || !state.linked
+        ? Promise.reject(new Error('not-linked'))
+        : call<{ url: string }>('stream', { url }).then((reply) => reply.url),
+    ),
   /**
    * Opens (or, with close=true, closes) link sharing for a Drive file. The first time Google asks
    * for a wider permission in the browser, hence the long timeout.
    */
   share: (url: string, close = false): Promise<void> =>
-    call<unknown>('share', { url, close }, 5 * 60_000).then(() => undefined),
+    whenHostKnown().then(() =>
+      unsupported
+        ? Promise.reject(new Error('unsupported'))
+        : call<unknown>('share', { url, close }, 5 * 60_000).then(() => undefined),
+    ),
   openExternal(url: string): void {
     host.send({ type: 'open', url });
   },
