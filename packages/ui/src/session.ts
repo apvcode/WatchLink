@@ -1,4 +1,6 @@
 import { type PlayerStateEvent, WatchLinkRoom } from '@watchlink/core';
+import { isDriveFileUrl } from './drive-links.js';
+import { google } from './google.js';
 import { host, isPhone, normalizeSource } from './host.js';
 import { type Stats, StatsTracker } from './stats.js';
 import type { AppState, Connection, Profile, TrackOption } from './types.js';
@@ -404,7 +406,7 @@ export class Session {
     this.qualityApplied = false;
     this.audioApplied = false;
     this.captionApplied = false;
-    host.send({ type: 'load', url });
+    this.loadSource(url);
     this.tracker.setVideo(url);
     this.update((s) => ({
       ...s,
@@ -432,7 +434,28 @@ export class Session {
   reload(): void {
     if (!this.currentUrl) return;
     this.awaitReady = true;
-    host.send({ type: 'load', url: this.currentUrl });
+    this.loadSource(this.currentUrl);
+  }
+  private loadGeneration = 0;
+  /**
+   * Loads a video into the content view. A Drive file plays from the user's own Drive (through the
+   * host's local player) when an account is linked; otherwise the public link is opened as is.
+   */
+  private loadSource(url: string): void {
+    const generation = ++this.loadGeneration;
+    if (!isDriveFileUrl(url)) {
+      host.send({ type: 'load', url });
+      return;
+    }
+    const publicLink = () => {
+      if (generation === this.loadGeneration) host.send({ type: 'load', url });
+    };
+    google
+      .stream(url)
+      .then((local) => {
+        if (generation === this.loadGeneration) host.send({ type: 'load', url: local });
+      })
+      .catch(publicLink);
   }
   close(): void {
     const hadRoom = Boolean(this.room);

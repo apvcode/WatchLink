@@ -1,6 +1,7 @@
 import type { FriendsManager, FriendsSnapshot } from '@watchlink/core';
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { DrivePicker } from './components/DrivePicker.js';
 import { FriendsSheet, InviteBanner, InviteSheet } from './components/FriendsUi.js';
 import { Home } from './components/Home.js';
 import { Onboarding } from './components/Onboarding.js';
@@ -23,6 +24,7 @@ import { Icon } from './icons.js';
 import { createProfile, loadProfile, saveProfile } from './profile.js';
 import { loadAmbientPref, Session } from './session.js';
 import { dayKey, loadStats, type Stats, type VideoStat } from './stats.js';
+import { withTransition } from './transition.js';
 import type { AppState, Profile } from './types.js';
 
 const ERROR_KEYS: Key[] = ['cantConnect', 'roomFull', 'badInvite'];
@@ -332,6 +334,7 @@ export function App(): JSX.Element {
           if (s.sheet !== 'none') patch({ sheet: 'none' });
           else if (s.isFullscreen) setFullscreen(false);
           else if (s.screen === 'room') patch({ sheet: 'leaveRoom' });
+          else if (s.screen === 'drive') withTransition(() => patch({ screen: 'home' }));
           else if (s.screen === 'profile' || s.screen === 'friend') patch({ screen: 'home' });
           else if (Date.now() - lastBack.current < 2000) host.send({ type: 'exit' });
           else {
@@ -406,10 +409,19 @@ export function App(): JSX.Element {
         t={t}
         onCreate={create}
         onJoin={join}
+        onOpenDrive={() => withTransition(() => patch({ screen: 'drive' }))}
         onOpenProfile={() => patch({ screen: 'profile' })}
         onOpenSettings={() => patch({ sheet: 'settings' })}
         onAddFriend={() => patch({ sheet: 'friends' })}
         onOpenFriend={(pub) => patch({ screen: 'friend', viewFriend: pub })}
+      />
+    );
+  else if (state.screen === 'drive')
+    body = (
+      <DrivePicker
+        t={t}
+        onBack={() => withTransition(() => patch({ screen: 'home' }))}
+        onPick={create}
       />
     );
   else if (state.screen === 'profile')
@@ -513,6 +525,7 @@ export function App(): JSX.Element {
             patch({ noVideoFound: false });
             session.reload();
           },
+          onLinkDrive: () => patch({ sheet: 'settings' }),
         }}
       />
     );

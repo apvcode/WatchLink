@@ -31,7 +31,10 @@ export function normalizeSource(raw: string): string {
     throw new Error('Only HTTP/HTTPS video URLs are supported');
   if (url.hostname === 'drive.google.com') {
     const id = url.pathname.match(/\/file\/d\/([\w-]+)/)?.[1] ?? url.searchParams.get('id');
-    if (id) return `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview`;
+    if (id) {
+      const key = url.searchParams.get('resourcekey');
+      return `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview${key ? `?resourcekey=${encodeURIComponent(key)}` : ''}`;
+    }
   }
   return url.href;
 }

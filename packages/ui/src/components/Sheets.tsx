@@ -4,6 +4,7 @@ import { isPhone } from '../host.js';
 import type { Language, T } from '../i18n.js';
 import { Icon } from '../icons.js';
 import type { AppState } from '../types.js';
+import { AccountCard } from './AccountCard.js';
 import { ProfileForm } from './ProfileForm.js';
 
 export function Sheet({
@@ -65,6 +66,8 @@ export function SettingsSheet({
           onClose();
         }}
       />
+      <h3 class="set-h">{t('accounts')}</h3>
+      <AccountCard t={t} />
       <div class="set-row" style={{ marginTop: '18px' }}>
         <div>{t('language')}</div>
         <div class="seg">

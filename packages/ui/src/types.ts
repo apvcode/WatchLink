@@ -41,7 +41,7 @@ export type Connection = 'connecting' | 'waiting' | 'connected' | 'offline' | 'e
 export type Sheet = 'none' | 'settings' | 'profile' | 'link' | 'invite' | 'friends' | 'leaveRoom';
 
 export interface AppState {
-  screen: 'onboarding' | 'home' | 'profile' | 'friend' | 'room';
+  screen: 'onboarding' | 'home' | 'drive' | 'profile' | 'friend' | 'room';
   friends: FriendsSnapshot;
   myPub: string;
   /** pub of the friend whose profile is open */

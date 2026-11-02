@@ -1,6 +1,14 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BaseWindow, clipboard, ipcMain, Menu, WebContentsView } from 'electron';
+import { app, BaseWindow, clipboard, ipcMain, Menu, shell, WebContentsView } from 'electron';
+import { DriveClient, type DriveView, driveFileId } from './drive.js';
+import { DriveProxy } from './drive-proxy.js';
+import { GoogleAuth, type GoogleAuthError } from './google-auth.js';
+import { fileTokenStore } from './token-store.js';
+
+// Injected at build time from .env (see scripts/build-desktop.mjs); empty when not configured.
+declare const __GOOGLE_CLIENT_ID__: string;
+declare const __GOOGLE_CLIENT_SECRET__: string;
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 // Name the app before anything else: the Wayland app_id / X11 class (taskbar icon) and the
@@ -28,6 +36,52 @@ let hidden = false;
 let loading = false;
 let loadGeneration = 0;
 let loadTimer: ReturnType<typeof setTimeout> | null = null;
+const google = new GoogleAuth({
+  clientId: __GOOGLE_CLIENT_ID__,
+  clientSecret: __GOOGLE_CLIENT_SECRET__ || undefined,
+  store: fileTokenStore(),
+  openBrowser: (url) => shell.openExternal(url),
+});
+const driveToken = (force?: boolean) => google.getAccessToken(force);
+const drive = new DriveClient(driveToken);
+const driveProxy = new DriveProxy({ getToken: driveToken });
+const DRIVE_VIEWS: DriveView[] = ['mine', 'shared', 'recent', 'search'];
+const shortText = (value: unknown, max = 200) =>
+  typeof value === 'string' && value.length <= max ? value : undefined;
+async function googleRequest(data: Record<string, unknown>) {
+  const id = typeof data.id === 'number' ? data.id : 0;
+  const status = await google.status();
+  if (!status.linked) return notify({ type: `google:${data.action}`, id, error: 'not-linked' });
+  try {
+    if (data.action === 'list') {
+      const view = DRIVE_VIEWS.find((v) => v === data.view) ?? 'mine';
+      const result = await drive.list({
+        view,
+        folderId: shortText(data.folderId),
+        query: shortText(data.query),
+        pageToken: shortText(data.pageToken, 2000),
+      });
+      notify({ type: 'google:list', id, ...result });
+    } else if (data.action === 'stream') {
+      const fileId = driveFileId(String(data.url ?? ''));
+      if (!fileId) return notify({ type: 'google:stream', id, error: 'bad-url' });
+      const resourceKey = new URL(String(data.url)).searchParams.get('resourcekey') ?? undefined;
+      notify({ type: 'google:stream', id, url: await driveProxy.streamUrl(fileId, resourceKey) });
+    }
+  } catch (error) {
+    const code =
+      (error as { status?: number; code?: string }).status ?? (error as { code?: string }).code;
+    notify({ type: `google:${data.action}`, id, error: String(code ?? 'failed') });
+  }
+}
+async function googleStatus(error?: string) {
+  notify({
+    type: 'google:status',
+    configured: Boolean(__GOOGLE_CLIENT_ID__),
+    ...(await google.status()),
+    error,
+  });
+}
 function notify(message: unknown) {
   if (ui?.webContents && !ui.webContents.isDestroyed())
     ui.webContents.send('watchlink:host', message);
@@ -167,6 +221,25 @@ app.whenReady().then(async () => {
     )
       return;
     if (data.type === 'copy' && typeof data.text === 'string') clipboard.writeText(data.text);
+    // Links the UI asks to open in the system browser (e.g. a file's sharing page on Drive).
+    if (data.type === 'open' && typeof data.url === 'string') {
+      try {
+        const url = new URL(data.url);
+        if (url.protocol === 'https:' && url.hostname === 'drive.google.com')
+          void shell.openExternal(url.href);
+      } catch {}
+    }
+    if (data.type === 'google') {
+      if (data.action === 'status') void googleStatus();
+      if (data.action === 'list' || data.action === 'stream') void googleRequest(data);
+      if (data.action === 'cancel') google.cancelSignIn();
+      if (data.action === 'unlink') void google.signOut().then(() => googleStatus());
+      if (data.action === 'link' && __GOOGLE_CLIENT_ID__)
+        void google
+          .signIn()
+          .then(() => googleStatus())
+          .catch((error: GoogleAuthError) => googleStatus(error.code ?? 'exchange'));
+    }
     if (data.type === 'load' && allowed(data.url)) load(data.url);
     if (data.type === 'bounds') {
       const r = data.rect;
@@ -226,4 +299,7 @@ app.whenReady().then(async () => {
   else await ui.webContents.loadFile(path.join(dir, 'ui/index.html'));
   layout();
 });
-app.on('window-all-closed', () => app.quit());
+app.on('window-all-closed', () => {
+  void driveProxy.stop();
+  app.quit();
+});

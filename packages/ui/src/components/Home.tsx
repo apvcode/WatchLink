@@ -1,7 +1,7 @@
 import type { JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import type { T } from '../i18n.js';
-import { Icon, Logo } from '../icons.js';
+import { DriveLogo, Icon, Logo } from '../icons.js';
 import { recentVideos } from '../stats.js';
 import type { AppState } from '../types.js';
 import { Avatar } from './Avatar.js';
@@ -13,6 +13,7 @@ export function Home({
   t,
   onCreate,
   onJoin,
+  onOpenDrive,
   onOpenProfile,
   onOpenSettings,
   onAddFriend,
@@ -22,6 +23,7 @@ export function Home({
   t: T;
   onCreate: (url: string) => void;
   onJoin: (invite: string) => void;
+  onOpenDrive: () => void;
   onOpenProfile: () => void;
   onOpenSettings: () => void;
   onAddFriend: () => void;
@@ -67,6 +69,21 @@ export function Home({
           <section class="hero">
             <p class="hero-hi">{t('hello', { name: profile.name })}</p>
             <h1>{t('startRoom')}</h1>
+            <div class="svc-row" role="group">
+              <button type="button" class="svc on" aria-pressed="true">
+                <Icon name="link" size={16} />
+                {t('svcLink')}
+              </button>
+              <button
+                type="button"
+                class="svc"
+                style={{ viewTransitionName: 'drive-chip' }}
+                onClick={onOpenDrive}
+              >
+                <DriveLogo size={16} />
+                {t('svcDrive')}
+              </button>
+            </div>
             <form
               class="hero-form"
               onSubmit={(e) => {

@@ -1,5 +1,6 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { isDriveFileUrl } from '../drive-links.js';
 import { qualityLabel, type T } from '../i18n.js';
 import { Icon } from '../icons.js';
 import { youtubeId } from '../profile.js';
@@ -37,6 +38,7 @@ export function Stage({
   onFullscreen,
   onAddVideo,
   onReload,
+  onLinkDrive,
 }: {
   state: AppState;
   t: T;
@@ -47,6 +49,7 @@ export function Stage({
   onFullscreen: () => void;
   onAddVideo: () => void;
   onReload: () => void;
+  onLinkDrive: () => void;
 }): JSX.Element {
   const [idle, setIdle] = useState(false);
   const [menu, setMenu] = useState<MenuView>('none');
@@ -95,9 +98,15 @@ export function Stage({
     posterNode = (
       <div class="poster">
         <div class="poster-msg">
-          <Icon name="alert" size={34} />
-          <h3>{t('noVideoTitle')}</h3>
-          <p>{t('noVideoSub')}</p>
+          <Icon name={isDriveFileUrl(state.videoUrl) ? 'lock' : 'alert'} size={34} />
+          <h3>{t(isDriveFileUrl(state.videoUrl) ? 'driveLockedTitle' : 'noVideoTitle')}</h3>
+          <p>{t(isDriveFileUrl(state.videoUrl) ? 'driveLockedSub' : 'noVideoSub')}</p>
+          {isDriveFileUrl(state.videoUrl) && (
+            <button type="button" class="btn btn-primary" onClick={onLinkDrive}>
+              <Icon name="link" size={16} />
+              {t('driveLockedAction')}
+            </button>
+          )}
           <button type="button" class="btn" onClick={onReload}>
             <Icon name="refresh" size={16} />
             {t('reload')}

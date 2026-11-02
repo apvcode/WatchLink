@@ -25,6 +25,7 @@ export interface RoomActions {
   onCaptions: (id: string) => void;
   onFullscreen: () => void;
   onReload: () => void;
+  onLinkDrive: () => void;
 }
 
 export function Room({
@@ -64,6 +65,7 @@ export function Room({
               onFullscreen={actions.onFullscreen}
               onAddVideo={actions.onOpenLink}
               onReload={actions.onReload}
+              onLinkDrive={actions.onLinkDrive}
             />
           </div>
           <div class="now">
