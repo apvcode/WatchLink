@@ -9,12 +9,13 @@ import { ProfileScreen } from './components/ProfileScreen.js';
 import { Room } from './components/Room.js';
 import { RoomEntry } from './components/RoomEntry.js';
 import { Screens } from './components/Screens.js';
+import { SettingsScreen } from './components/SettingsScreen.js';
 import {
   ConsentSheet,
   DebugOverlay,
   LeaveSheet,
   LinkSheet,
-  SettingsSheet,
+  ProfileSheet,
   Toast,
 } from './components/Sheets.js';
 import { createFriends, fromShared } from './friends.js';
@@ -96,9 +97,11 @@ function initialState(): AppState {
         ? 'home'
         : demo === 'profile'
           ? 'profile'
-          : demo === 'onboarding'
-            ? 'onboarding'
-            : 'room',
+          : demo === 'settings'
+            ? 'settings'
+            : demo === 'onboarding'
+              ? 'onboarding'
+              : 'room',
     profile: { uid: 'a'.repeat(32), name: 'Alex' },
     stats: demoStats(now),
     friends: {
@@ -165,7 +168,7 @@ function initialState(): AppState {
       },
       { id: '4', senderId: 'p2', senderName: 'Дмитрий', text: 'Качество огонь', timestamp: now },
     ],
-    sheet: demo === 'settings' ? 'settings' : demo === 'friends' ? 'friends' : 'none',
+    sheet: demo === 'friends' ? 'friends' : 'none',
   };
 }
 
@@ -240,6 +243,12 @@ export function App(): JSX.Element {
   const pendingJoin = useRef('');
   const [exitHint, setExitHint] = useState(false);
   const [dismissed, setDismissed] = useState<Record<string, number>>({});
+  const settingsReturn = useRef<'home' | 'room'>('home');
+  const openSettings = () => {
+    settingsReturn.current = stateRef.current.screen === 'room' ? 'room' : 'home';
+    patch({ screen: 'settings', sheet: 'none' });
+  };
+  const closeSettings = () => patch({ screen: settingsReturn.current });
 
   // Play the entry animation whenever we move into a room.
   const [entry, setEntry] = useState<'create' | 'join' | 'leave' | null>(null);
@@ -335,6 +344,7 @@ export function App(): JSX.Element {
           else if (s.isFullscreen) setFullscreen(false);
           else if (s.screen === 'room') patch({ sheet: 'leaveRoom' });
           else if (s.screen === 'drive') withTransition(() => patch({ screen: 'home' }));
+          else if (s.screen === 'settings') closeSettings();
           else if (s.screen === 'profile' || s.screen === 'friend') patch({ screen: 'home' });
           else if (Date.now() - lastBack.current < 2000) host.send({ type: 'exit' });
           else {
@@ -363,6 +373,7 @@ export function App(): JSX.Element {
       if (e.key !== 'Escape') return;
       const s = stateRef.current;
       if (s.sheet !== 'none') patch({ sheet: 'none' });
+      else if (s.screen === 'settings') closeSettings();
       else if (s.isFullscreen) setFullscreen(false);
     };
     window.addEventListener('keydown', onKey);
@@ -411,7 +422,7 @@ export function App(): JSX.Element {
         onJoin={join}
         onOpenDrive={() => withTransition(() => patch({ screen: 'drive' }))}
         onOpenProfile={() => patch({ screen: 'profile' })}
-        onOpenSettings={() => patch({ sheet: 'settings' })}
+        onOpenSettings={openSettings}
         onAddFriend={() => patch({ sheet: 'friends' })}
         onOpenFriend={(pub) => patch({ screen: 'friend', viewFriend: pub })}
       />
@@ -422,6 +433,18 @@ export function App(): JSX.Element {
         t={t}
         onBack={() => withTransition(() => patch({ screen: 'home' }))}
         onPick={create}
+      />
+    );
+  else if (state.screen === 'settings')
+    body = (
+      <SettingsScreen
+        state={state}
+        t={t}
+        onBack={closeSettings}
+        onLanguage={(language) => patch({ language })}
+        onToggleDebug={() => patch({ isDebugOverlay: !state.isDebugOverlay })}
+        onToggleAmbient={() => session.setAmbient(!state.ambientOn)}
+        onProfile={saveMe}
       />
     );
   else if (state.screen === 'profile')
@@ -499,7 +522,7 @@ export function App(): JSX.Element {
           onTogglePanel: () => patch({ isPanelOpen: !state.isPanelOpen, unread: 0 }),
           onTab: (activeTab) =>
             patch({ activeTab, unread: activeTab === 'chat' ? 0 : state.unread }),
-          onOpenSettings: () => patch({ sheet: 'settings' }),
+          onOpenSettings: () => openSettings(),
           onOpenLink: () => patch({ sheet: 'link' }),
           onInviteFriends: () => patch({ sheet: 'invite' }),
           onNext: () => session.playNext(),
@@ -525,7 +548,7 @@ export function App(): JSX.Element {
             patch({ noVideoFound: false });
             session.reload();
           },
-          onLinkDrive: () => patch({ sheet: 'settings' }),
+          onLinkDrive: () => openSettings(),
         }}
       />
     );
@@ -535,24 +558,26 @@ export function App(): JSX.Element {
       <Screens
         id={state.screen === 'friend' ? `friend:${state.viewFriend}` : state.screen}
         depth={
-          state.screen === 'room'
+          state.screen === 'room' || state.screen === 'settings'
             ? 2
             : state.screen === 'profile' || state.screen === 'friend'
               ? 1
               : 0
         }
-        animate={state.screen === 'home' || state.screen === 'profile' || state.screen === 'friend'}
+        animate={
+          state.screen === 'home' ||
+          state.screen === 'profile' ||
+          state.screen === 'friend' ||
+          state.screen === 'settings'
+        }
       >
         {body}
       </Screens>
-      {(state.sheet === 'settings' || state.sheet === 'profile') && (
-        <SettingsSheet
+      {state.sheet === 'profile' && (
+        <ProfileSheet
           state={state}
           t={t}
           onClose={() => patch({ sheet: 'none' })}
-          onLanguage={(language) => patch({ language })}
-          onToggleDebug={() => patch({ isDebugOverlay: !state.isDebugOverlay })}
-          onToggleAmbient={() => session.setAmbient(!state.ambientOn)}
           onProfile={saveMe}
         />
       )}

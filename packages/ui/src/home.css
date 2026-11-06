@@ -1,6 +1,7 @@
-/* Home + Profile screens — pure black & white, one column. */
+/* Home + Profile + Settings screens — pure black & white, one column. */
 .home,
-.profile-screen {
+.profile-screen,
+.settings-screen {
   position: relative;
   width: 100%;
   height: 100%;
@@ -315,6 +316,131 @@
 }
 .donut li span {
   flex: 1;
+}
+
+/* settings */
+.settings-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 0 24px;
+  text-align: center;
+}
+.settings-head h1 {
+  font-size: 30px;
+  letter-spacing: -0.02em;
+}
+.settings-head p {
+  color: var(--text-2);
+}
+.settings-icon {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 26px;
+  background: linear-gradient(145deg, #202022, #0d0d0e);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 18px 45px -24px rgba(255, 255, 255, 0.3);
+}
+.settings-section .psec-body {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.settings-section .stack {
+  gap: 16px;
+}
+.settings-section .avatar-pick {
+  padding: 2px 0 8px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-row:last-child {
+  border-bottom: 0;
+}
+.settings-row-icon {
+  flex: none;
+  color: var(--text-2);
+}
+.settings-row-text {
+  flex: 1;
+  min-width: 0;
+}
+.settings-row-title {
+  display: block;
+  font-weight: 600;
+}
+.settings-row-text small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.settings-row-control {
+  flex: none;
+  max-width: 48%;
+}
+.settings-seg {
+  margin: 0;
+  border-radius: 999px;
+}
+.settings-seg button {
+  border-radius: 999px;
+  padding: 5px 14px;
+}
+.device-id {
+  color: var(--text-2);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+.settings-wrap > .settings-head {
+  animation: none;
+}
+.settings-head h1,
+.settings-head p {
+  animation: rise-in 0.55s var(--ease) 0.18s both;
+}
+.settings-icon {
+  animation: avatar-in 0.6s var(--spring) 0.05s both;
+}
+@media (max-width: 480px) {
+  .settings-row {
+    gap: 10px;
+  }
+  .settings-row-icon {
+    display: none;
+  }
+  .settings-section .psec-body {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+  .settings-section .acct {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .settings-section .acct > .btn {
+    width: 100%;
+  }
+  .settings-section .acct-avatar {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-head *,
+  .settings-icon {
+    animation: none;
+  }
 }
 
 /* friends */

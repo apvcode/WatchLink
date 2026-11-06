@@ -1,10 +1,8 @@
 import type { ComponentChildren, JSX } from 'preact';
 import { useState } from 'preact/hooks';
-import { isPhone } from '../host.js';
-import type { Language, T } from '../i18n.js';
+import type { T } from '../i18n.js';
 import { Icon } from '../icons.js';
 import type { AppState } from '../types.js';
-import { AccountCard } from './AccountCard.js';
 import { ProfileForm } from './ProfileForm.js';
 
 export function Sheet({
@@ -38,25 +36,19 @@ export function Sheet({
   );
 }
 
-export function SettingsSheet({
+export function ProfileSheet({
   state,
   t,
   onClose,
-  onLanguage,
-  onToggleDebug,
-  onToggleAmbient,
   onProfile,
 }: {
   state: AppState;
   t: T;
   onClose: () => void;
-  onLanguage: (l: Language) => void;
-  onToggleDebug: () => void;
-  onToggleAmbient: () => void;
   onProfile: (name: string, avatar: string | undefined) => void;
 }): JSX.Element {
   return (
-    <Sheet title={t('settings')} onClose={onClose} t={t}>
+    <Sheet title={t('editProfile')} onClose={onClose} t={t}>
       <ProfileForm
         t={t}
         initial={state.profile}
@@ -66,62 +58,6 @@ export function SettingsSheet({
           onClose();
         }}
       />
-      <h3 class="set-h">{t('accounts')}</h3>
-      <AccountCard t={t} />
-      <div class="set-row" style={{ marginTop: '18px' }}>
-        <div>{t('language')}</div>
-        <div class="seg">
-          {(['en', 'ru'] as const).map((l) => (
-            <button
-              key={l}
-              type="button"
-              class={state.language === l ? 'on' : ''}
-              onClick={() => onLanguage(l)}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div class="set-row">
-        <div>
-          {t('deviceId')}
-          <small>{t('deviceIdHint')}</small>
-        </div>
-        <code style={{ fontFamily: 'var(--mono)', color: 'var(--text-2)' }}>
-          ••••{state.profile.uid.slice(-4)}
-        </code>
-      </div>
-      {isPhone ? null : (
-        <div class="set-row">
-          <div>
-            {t('ambientLight')}
-            <small>{t('ambientLightSub')}</small>
-          </div>
-          <button
-            type="button"
-            class={`switch${state.ambientOn ? ' on' : ''}`}
-            role="switch"
-            aria-checked={state.ambientOn}
-            aria-label={t('ambientLight')}
-            onClick={onToggleAmbient}
-          />
-        </div>
-      )}
-      <div class="set-row">
-        <div>
-          {t('debug')}
-          <small>{t('debugSub')}</small>
-        </div>
-        <button
-          type="button"
-          class={`switch${state.isDebugOverlay ? ' on' : ''}`}
-          role="switch"
-          aria-checked={state.isDebugOverlay}
-          aria-label={t('debug')}
-          onClick={onToggleDebug}
-        />
-      </div>
     </Sheet>
   );
 }

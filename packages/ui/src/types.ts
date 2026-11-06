@@ -38,10 +38,10 @@ export interface ChatMessage {
 
 export type SyncState = 'sync' | 'nudge' | 'drift' | 'buffering' | 'offline';
 export type Connection = 'connecting' | 'waiting' | 'connected' | 'offline' | 'error' | 'full';
-export type Sheet = 'none' | 'settings' | 'profile' | 'link' | 'invite' | 'friends' | 'leaveRoom';
+export type Sheet = 'none' | 'profile' | 'link' | 'invite' | 'friends' | 'leaveRoom';
 
 export interface AppState {
-  screen: 'onboarding' | 'home' | 'drive' | 'profile' | 'friend' | 'room';
+  screen: 'onboarding' | 'home' | 'drive' | 'profile' | 'settings' | 'friend' | 'room';
   friends: FriendsSnapshot;
   myPub: string;
   /** pub of the friend whose profile is open */
