@@ -31,7 +31,5 @@ Thumbs.db
 *.log
 .env
 .env.*
-
-# Outdated design captures (pre-redesign); regenerate with scripts/capture-screenshots.mjs before publishing
 docs/screenshots/
 !.env.example
