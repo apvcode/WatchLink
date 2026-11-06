@@ -33,3 +33,4 @@ Thumbs.db
 .env.*
 docs/screenshots/
 !.env.example
+.devx
