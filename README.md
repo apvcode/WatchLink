@@ -87,13 +87,13 @@ docs/                decisions, verification log
 
 Download the files for your system from the [Releases](https://github.com/apvcode/WatchLink/releases) page (Linux AppImage / tar.gz, Windows installer / zip, Android APK), or build from source (see below).
 
-**Windows (x64):** run `watchlink-0.2.0-setup.exe` (per-user installer, no admin rights needed), or unpack `watchlink-0.2.0-win-x64.zip` and start `WatchLink.exe`. The build is unsigned, so SmartScreen shows "Windows protected your PC": choose *More info → Run anyway*.
+**Windows (x64):** run `watchlink-0.2.2-setup.exe` (per-user installer, no admin rights needed), or unpack `watchlink-0.2.2-win-x64.zip` and start `WatchLink.exe`. The build is unsigned, so SmartScreen shows "Windows protected your PC": choose *More info → Run anyway*.
 
 **Linux (AppImage):**
 
 ```bash
-chmod +x watchlink-0.2.0.AppImage
-./watchlink-0.2.0.AppImage
+chmod +x watchlink-0.2.2.AppImage
+./watchlink-0.2.2.AppImage
 ```
 
 **Arch Linux:** `packaging/arch/PKGBUILD` installs the portable build with a desktop entry and icon.
@@ -105,7 +105,7 @@ cd packaging/arch && makepkg -si
 **Android:** sideload the APK (`minSdk 26`, `targetSdk 34`):
 
 ```bash
-adb install -r watchlink-0.2.0.apk
+adb install -r watchlink-0.2.2.apk
 ```
 
 Invite links use the `wl://` scheme and open the app directly on Android.
@@ -141,7 +141,7 @@ node scripts/live-check.mjs # real Electron against YouTube / VK / Google Drive
 
 ## Project status
 
-WatchLink is an early development build (0.2.0).
+WatchLink is an early development build (0.2.2).
 
 - ✅ Custom player and two-client YouTube playback verified on Linux with a local signaling relay.
 - ✅ Late join, quality selection, chat and profiles verified in the desktop app.

@@ -1,6 +1,6 @@
 {
   "name": "@watchlink/desktop",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Peer-to-peer watch together desktop application",
   "author": "WatchLink",
   "private": true,
