@@ -1,3 +1,4 @@
+import type { ChatReply } from '@watchlink/core';
 import type { JSX } from 'preact';
 import type { T } from '../i18n.js';
 import { Icon } from '../icons.js';
@@ -14,7 +15,8 @@ export interface RoomActions {
   onOpenLink: () => void;
   onNext: () => void;
   onLeave: () => void;
-  onSend: (text: string) => void;
+  onSend: (text: string, reply?: ChatReply) => void;
+  onCopyText: (text: string) => void;
   onSendImage: (base64: string) => void;
   onHandover: (peerId: string) => void;
   onCopyInvite: () => void;
@@ -111,6 +113,7 @@ export function Room({
           t={t}
           onTab={actions.onTab}
           onSend={actions.onSend}
+          onCopyText={actions.onCopyText}
           onSendImage={actions.onSendImage}
           onHandover={actions.onHandover}
           onCopyInvite={actions.onCopyInvite}

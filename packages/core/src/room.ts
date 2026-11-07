@@ -16,7 +16,7 @@ import {
   SIGNALING_FALLBACK_TIMEOUT_MS,
 } from './constants.js';
 import { SyncEngine } from './sync-engine.js';
-import type { ChatMsg, ImgMsg, ProtocolMsg, SignalingStrategy } from './types.js';
+import type { ChatMsg, ChatReply, ImgMsg, ProtocolMsg, SignalingStrategy } from './types.js';
 import { MessageValidator } from './validator.js';
 
 export interface RoomOptions {
@@ -40,6 +40,8 @@ export interface ChatMessage {
   text: string;
   /** data:image/jpeg URL when this message is a photo. */
   image?: string;
+  /** The message this one answers. */
+  reply?: ChatReply;
   ts: number;
   isSelf: boolean;
 }
@@ -334,6 +336,7 @@ export class WatchLinkRoom {
         peerId,
         senderName,
         text: msg.text,
+        reply: msg.re,
         ts: msg.ts,
         isSelf: false,
       });
@@ -365,7 +368,7 @@ export class WatchLinkRoom {
     });
   }
 
-  public sendChat(text: string): ChatMessage | null {
+  public sendChat(text: string, reply?: ChatReply): ChatMessage | null {
     const trimmed = text.trim();
     if (!trimmed || trimmed.length > 1000) return null;
 
@@ -375,6 +378,7 @@ export class WatchLinkRoom {
       id: Math.random().toString(36).substring(2, 10),
       text: trimmed,
       ts: Date.now(),
+      ...(reply ? { re: reply } : {}),
     };
 
     this.sendProtocolMsg(chatMsg);
@@ -384,6 +388,7 @@ export class WatchLinkRoom {
       peerId: this.selfId,
       senderName: this.userName,
       text: trimmed,
+      reply,
       ts: chatMsg.ts,
       isSelf: true,
     };

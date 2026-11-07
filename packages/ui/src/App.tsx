@@ -397,11 +397,12 @@ export function App(): JSX.Element {
       : state.errorMessage
     : '';
 
-  const copyInvite = () => {
-    host.send({ type: 'copy', text: state.roomUrl });
+  const copyText = (text: string) => {
+    host.send({ type: 'copy', text });
     if (!window.watchlinkHost && !window.WatchLinkHost)
-      void navigator.clipboard?.writeText(state.roomUrl).catch(() => {});
+      void navigator.clipboard?.writeText(text).catch(() => {});
   };
+  const copyInvite = () => copyText(state.roomUrl);
 
   let body: JSX.Element;
   if (state.screen === 'onboarding')
@@ -527,7 +528,8 @@ export function App(): JSX.Element {
           onInviteFriends: () => patch({ sheet: 'invite' }),
           onNext: () => session.playNext(),
           onLeave: leave,
-          onSend: (text) => session.room?.sendChat(text),
+          onSend: (text, reply) => session.room?.sendChat(text, reply),
+          onCopyText: copyText,
           onSendImage: (b64) => void session.room?.sendImage(b64),
           onHandover: (id) => session.room?.syncEngine.handover(id),
           onCopyInvite: copyInvite,

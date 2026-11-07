@@ -85,11 +85,24 @@ export interface ReadyMsg extends BaseMsg {
   peerId: string;
 }
 
+/** Quote of the message a chat message answers; carried along because the receiver may not have the original. */
+export interface ChatReply {
+  /** Id of the quoted message. */
+  id: string;
+  /** Name of its author. */
+  name: string;
+  /** Short excerpt of its text (empty for a photo). */
+  text: string;
+  /** The quoted message is a photo. */
+  img?: boolean;
+}
+
 export interface ChatMsg extends BaseMsg {
   type: 'chat';
   id: string;
   text: string;
   ts: number;
+  re?: ChatReply;
 }
 
 /** One base64 JPEG chunk of a photo; photos are split to fit the 8 KB message limit. */

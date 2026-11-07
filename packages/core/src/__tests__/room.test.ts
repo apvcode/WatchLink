@@ -59,6 +59,36 @@ describe('room transport integration', () => {
     });
     expect(room.syncEngine.getPeers()).toHaveLength(1);
   });
+  it('sends and delivers chat replies', async () => {
+    await room.connect();
+    const { room: transport, action } = mocks.transports[0];
+    transport.onPeerJoin('bob');
+    action.onMessage(JSON.stringify({ v: 2, type: 'hello', peerId: 'bob', name: 'Bob' }), {
+      peerId: 'bob',
+    });
+    const got: unknown[] = [];
+    room.onChat((m) => got.push(m));
+    const reply = { id: 'm1', name: 'Bob', text: 'hi there' };
+    const local = room.sendChat('hello back', reply);
+    expect(local?.reply).toEqual(reply);
+    expect(JSON.parse(action.send.mock.calls.at(-1)[0])).toMatchObject({
+      type: 'chat',
+      text: 'hello back',
+      re: reply,
+    });
+    action.onMessage(
+      JSON.stringify({
+        v: 2,
+        type: 'chat',
+        id: 'm2',
+        text: 'ok',
+        ts: 5,
+        re: { ...reply, id: 'x1' },
+      }),
+      { peerId: 'bob' },
+    );
+    expect(got.at(-1)).toMatchObject({ id: 'm2', reply: { id: 'x1', name: 'Bob' } });
+  });
   it('adds fallback after eight seconds without removing primary discovery', async () => {
     await room.connect();
     vi.advanceTimersByTime(8000);

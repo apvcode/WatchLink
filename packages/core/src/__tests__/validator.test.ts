@@ -138,4 +138,51 @@ describe('MessageValidator', () => {
       ).valid,
     ).toBe(true);
   });
+  describe('chat replies', () => {
+    const chat = (extra: Record<string, unknown>) =>
+      JSON.stringify({ v: 2, type: 'chat', id: 'c2', text: 'yes', ts: 1000, ...extra });
+
+    it('keeps a well-formed quote', () => {
+      const res = new MessageValidator().parseAndValidate(
+        chat({ re: { id: 'c1', name: 'Bob', text: 'hello?' } }),
+        'p',
+      );
+      expect(res.valid).toBe(true);
+      if (res.valid && res.msg.type === 'chat') {
+        expect(res.msg.re).toEqual({ id: 'c1', name: 'Bob', text: 'hello?' });
+      }
+    });
+
+    it('keeps the photo flag and strips unknown quote fields', () => {
+      const res = new MessageValidator().parseAndValidate(
+        chat({ re: { id: 'c1', name: 'Bob', text: '', img: true, evil: 1 } }),
+        'p',
+      );
+      expect(res.valid).toBe(true);
+      if (res.valid && res.msg.type === 'chat') {
+        expect(res.msg.re).toEqual({ id: 'c1', name: 'Bob', text: '', img: true });
+      }
+    });
+
+    it('accepts a plain message without a quote', () => {
+      const res = new MessageValidator().parseAndValidate(chat({}), 'p');
+      expect(res.valid).toBe(true);
+      if (res.valid && res.msg.type === 'chat') expect(res.msg.re).toBeUndefined();
+    });
+
+    it.each([
+      ['null', null],
+      ['a string', 'x'],
+      ['no id', { name: 'Bob', text: 'hi' }],
+      ['empty id', { id: '', name: 'Bob', text: 'hi' }],
+      ['long name', { id: 'c1', name: 'n'.repeat(49), text: 'hi' }],
+      ['long text', { id: 'c1', name: 'Bob', text: 't'.repeat(141) }],
+      ['numeric text', { id: 'c1', name: 'Bob', text: 5 }],
+      ['non-boolean img', { id: 'c1', name: 'Bob', text: '', img: 'yes' }],
+    ])('rejects a malformed quote (%s)', (_label, re) => {
+      const res = new MessageValidator().parseAndValidate(chat({ re }), 'p');
+      expect(res.valid).toBe(false);
+      if (!res.valid) expect(res.reason).toBe('INVALID_CHAT_REPLY');
+    });
+  });
 });

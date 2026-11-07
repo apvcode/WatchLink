@@ -66,92 +66,96 @@ export function Home({
             </div>
           </header>
 
-          <section class="hero">
-            <p class="hero-hi">{t('hello', { name: profile.name })}</p>
-            <h1>{t('startRoom')}</h1>
-            <div class="svc-row" role="group">
-              <button type="button" class="svc on" aria-pressed="true">
-                <Icon name="link" size={16} />
-                {t('svcLink')}
-              </button>
-              <button
-                type="button"
-                class="svc"
-                style={{ viewTransitionName: 'drive-chip' }}
-                onClick={onOpenDrive}
-              >
-                <DriveLogo size={16} />
-                {t('svcDrive')}
-              </button>
-            </div>
-            <form
-              class="hero-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                onCreate(video.trim());
-              }}
-            >
-              <input
-                value={video}
-                placeholder={t('pasteLink')}
-                onInput={(e) => setVideo((e.currentTarget as HTMLInputElement).value)}
-              />
-              <button type="submit" class="btn btn-primary">
-                <Icon name="play" size={18} />
-                {t('createRoom')}
-              </button>
-            </form>
-            <button
-              type="button"
-              class="link-btn"
-              aria-expanded={joining}
-              onClick={() => setJoining(!joining)}
-            >
-              <Icon name="link" size={16} />
-              {t('joinByInvite')}
-            </button>
-            {joining && (
-              <form
-                class="row"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (invite.trim()) onJoin(invite.trim());
-                }}
-              >
-                <input
-                  value={invite}
-                  placeholder={t('invitePh')}
-                  autoFocus
-                  onInput={(e) => setInvite((e.currentTarget as HTMLInputElement).value)}
-                />
-                <button type="submit" class="btn">
-                  <Icon name="users" size={18} />
-                  {t('join')}
+          <div class="home-main">
+            <div class="home-left">
+              <section class="hero">
+                <p class="hero-hi">{t('hello', { name: profile.name })}</p>
+                <h1>{t('startRoom')}</h1>
+                <div class="svc-row" role="group">
+                  <button type="button" class="svc on" aria-pressed="true">
+                    <Icon name="link" size={16} />
+                    {t('svcLink')}
+                  </button>
+                  <button
+                    type="button"
+                    class="svc"
+                    style={{ viewTransitionName: 'drive-chip' }}
+                    onClick={onOpenDrive}
+                  >
+                    <DriveLogo size={16} />
+                    {t('svcDrive')}
+                  </button>
+                </div>
+                <form
+                  class="hero-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    onCreate(video.trim());
+                  }}
+                >
+                  <input
+                    value={video}
+                    placeholder={t('pasteLink')}
+                    onInput={(e) => setVideo((e.currentTarget as HTMLInputElement).value)}
+                  />
+                  <button type="submit" class="btn btn-primary">
+                    <Icon name="play" size={18} />
+                    {t('createRoom')}
+                  </button>
+                </form>
+                <button
+                  type="button"
+                  class="link-btn"
+                  aria-expanded={joining}
+                  onClick={() => setJoining(!joining)}
+                >
+                  <Icon name="link" size={16} />
+                  {t('joinByInvite')}
                 </button>
-              </form>
-            )}
-          </section>
+                {joining && (
+                  <form
+                    class="row"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (invite.trim()) onJoin(invite.trim());
+                    }}
+                  >
+                    <input
+                      value={invite}
+                      placeholder={t('invitePh')}
+                      autoFocus
+                      onInput={(e) => setInvite((e.currentTarget as HTMLInputElement).value)}
+                    />
+                    <button type="submit" class="btn">
+                      <Icon name="users" size={18} />
+                      {t('join')}
+                    </button>
+                  </form>
+                )}
+              </section>
 
-          <FriendsCard
-            friends={state.friends}
-            t={t}
-            onAdd={onAddFriend}
-            onOpen={onOpenFriend}
-            onJoin={onJoin}
-          />
+              <FriendsCard
+                friends={state.friends}
+                t={t}
+                onAdd={onAddFriend}
+                onOpen={onOpenFriend}
+                onJoin={onJoin}
+              />
+            </div>
 
-          <section class="recent">
-            <h2>{t('recent')}</h2>
-            {recent.length === 0 ? (
-              <p class="empty">{t('noVideosYet')}</p>
-            ) : (
-              <div class="recent-row">
-                {recent.map((v) => (
-                  <VideoCard key={v.url} video={v} t={t} onClick={() => onCreate(v.url)} />
-                ))}
-              </div>
-            )}
-          </section>
+            <section class="recent">
+              <h2>{t('recent')}</h2>
+              {recent.length === 0 ? (
+                <p class="empty">{t('noVideosYet')}</p>
+              ) : (
+                <div class="recent-row">
+                  {recent.map((v) => (
+                    <VideoCard key={v.url} video={v} t={t} onClick={() => onCreate(v.url)} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       </div>
     </div>

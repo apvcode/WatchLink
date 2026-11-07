@@ -1,16 +1,21 @@
+import type { ChatReply } from '@watchlink/core';
+import { CHAT_REPLY_MAX } from '@watchlink/core';
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { T } from '../i18n.js';
 import { Icon } from '../icons.js';
 import { photoToBase64 } from '../image.js';
-import type { AppState } from '../types.js';
+import type { AppState, ChatMessage } from '../types.js';
 import { Avatar } from './Avatar.js';
+import { ChatMsgRow, type MenuRequest } from './ChatMsgRow.js';
+import { MsgMenu } from './MsgMenu.js';
 
 export function Panel({
   state,
   t,
   onTab,
   onSend,
+  onCopyText,
   onSendImage,
   onHandover,
   onCopyInvite,
@@ -19,7 +24,8 @@ export function Panel({
   state: AppState;
   t: T;
   onTab: (tab: 'chat' | 'people') => void;
-  onSend: (text: string) => void;
+  onSend: (text: string, reply?: ChatReply) => void;
+  onCopyText: (text: string) => void;
   onSendImage: (base64: string) => void;
   onHandover: (peerId: string) => void;
   onCopyInvite: () => void;
@@ -29,6 +35,8 @@ export function Panel({
   const [copied, setCopied] = useState(false);
   const [menu, setMenu] = useState(false);
   const [photoErr, setPhotoErr] = useState(false);
+  const [menuFor, setMenuFor] = useState<MenuRequest | null>(null);
+  const [replyTo, setReplyTo] = useState<ChatReply | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const area = useRef<HTMLTextAreaElement>(null);
   const measure = useRef<HTMLDivElement>(null);
@@ -65,9 +73,39 @@ export function Panel({
   }, [menu]);
   const send = () => {
     if (!text.trim()) return;
-    onSend(text.trim());
+    onSend(text.trim(), replyTo ?? undefined);
     setText('');
+    setReplyTo(null);
+    // Keep the field focused so the on-screen keyboard stays up for the next message.
+    area.current?.focus();
   };
+  const nameOf = (m: ChatMessage): string =>
+    (m.isSelf
+      ? state.profile.name
+      : (state.peers.find((p) => p.id === m.senderId)?.name ?? m.senderName)) || t('you');
+  const startReply = (m: ChatMessage) => {
+    if (m.isSystem) return;
+    setReplyTo({
+      id: m.id,
+      name: nameOf(m),
+      text: m.image ? '' : m.text.replace(/\s+/g, ' ').trim().slice(0, CHAT_REPLY_MAX),
+      ...(m.image ? { img: true } : {}),
+    });
+    area.current?.focus();
+    requestAnimationFrame(() =>
+      list.current?.scrollTo({ top: list.current.scrollHeight, behavior: 'smooth' }),
+    );
+  };
+  const jumpTo = (id: string) => {
+    const el = list.current?.querySelector<HTMLElement>(`[data-mid="${CSS.escape(id)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1400);
+  };
+  const menuMsg = menuFor ? state.chatMessages.find((m) => m.id === menuFor.id) : undefined;
   const people = [
     {
       id: state.myPeerId,
@@ -108,7 +146,7 @@ export function Panel({
 
       {state.activeTab === 'chat' ? (
         <>
-          <div class="scroll chat-scroll" ref={list}>
+          <div class={`scroll chat-scroll${replyTo ? ' replying' : ''}`} ref={list}>
             {state.isHost && (
               <div class="invite-card">
                 <Icon name="link" size={22} />
@@ -149,22 +187,17 @@ export function Panel({
               const name = m.isSystem ? m.senderName : (sender?.name ?? m.senderName);
               const avatar = sender ? sender.avatar : m.senderAvatar;
               return (
-                <div
+                <ChatMsgRow
                   key={m.id}
-                  class={`msg${m.isSystem ? ' system' : ''}${m.isSelf ? ' self' : ''}${m.image ? ' has-photo' : ''}`}
-                >
-                  {!m.isSystem && !m.isSelf && <Avatar name={name} avatar={avatar} size={30} />}
-                  <div class="bubble">
-                    {!m.isSystem && !m.isSelf && <span class="who">{name}</span>}
-                    {m.image ? (
-                      <img class="photo" src={m.image} alt={t('photo')} />
-                    ) : m.sys ? (
-                      t(m.sys, { name: m.senderName })
-                    ) : (
-                      m.text
-                    )}
-                  </div>
-                </div>
+                  m={m}
+                  name={name}
+                  avatar={avatar}
+                  t={t}
+                  picked={menuFor?.id === m.id}
+                  onMenu={setMenuFor}
+                  onReply={startReply}
+                  onJump={jumpTo}
+                />
               );
             })}
           </div>
@@ -217,6 +250,24 @@ export function Panel({
               />
             </div>
             {photoErr && <div class="composer-toast">{t('photoFail')}</div>}
+            {replyTo && (
+              <div class="reply-bar">
+                <Icon name="reply" size={18} stroke={2} />
+                <div class="rb-text">
+                  <b>{t('replyTo', { name: replyTo.name })}</b>
+                  <span>{replyTo.img ? t('photo') : replyTo.text}</span>
+                </div>
+                <button
+                  type="button"
+                  class="icon-btn"
+                  aria-label={t('cancel')}
+                  title={t('cancel')}
+                  onClick={() => setReplyTo(null)}
+                >
+                  <Icon name="x" size={16} />
+                </button>
+              </div>
+            )}
             <div class={`field${text.trim() ? ' ready' : ''}`}>
               <div class="ta-measure" ref={measure} aria-hidden="true" />
               <textarea
@@ -229,7 +280,9 @@ export function Panel({
                 enterkeyhint="send"
                 onInput={(e) => setText((e.currentTarget as HTMLTextAreaElement).value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                  if (e.key === 'Escape' && replyTo) {
+                    setReplyTo(null);
+                  } else if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
                     e.preventDefault();
                     send();
                   }
@@ -238,6 +291,9 @@ export function Panel({
               <button
                 type="submit"
                 class="send"
+                // Tapping the button must not pull focus off the field (that closes the keyboard).
+                onPointerDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => e.preventDefault()}
                 disabled={!text.trim()}
                 aria-label={t('send')}
                 title={t('send')}
@@ -246,6 +302,18 @@ export function Panel({
               </button>
             </div>
           </form>
+          {menuFor && menuMsg && (
+            <MsgMenu
+              t={t}
+              x={menuFor.x}
+              y={menuFor.y}
+              touch={menuFor.touch}
+              canCopy={Boolean(menuMsg.text) && !menuMsg.image}
+              onCopy={() => onCopyText(menuMsg.text)}
+              onReply={() => startReply(menuMsg)}
+              onClose={() => setMenuFor(null)}
+            />
+          )}
         </>
       ) : (
         <div class="scroll">

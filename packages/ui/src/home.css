@@ -87,6 +87,12 @@
 .link-btn:hover {
   color: var(--text);
 }
+.home-main,
+.home-left {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
 .recent,
 .friends-card {
   border-top: 1px solid var(--line);
@@ -114,6 +120,58 @@
 .recent-row .vcard {
   flex: 0 0 160px;
   scroll-snap-align: start;
+}
+
+/* desktop: form + friends on the left, history as a list on the right */
+@media (min-width: 960px) {
+  .home-col {
+    max-width: 1040px;
+  }
+  .home-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+    gap: 48px;
+    align-items: start;
+  }
+  .home-main > .recent {
+    position: sticky;
+    top: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: #0a0a0a;
+    padding: 18px;
+  }
+  .recent-row {
+    flex-direction: column;
+    gap: 4px;
+    overflow: visible;
+    margin-right: 0;
+    padding: 0;
+  }
+  .recent-row .vcard {
+    flex: none;
+    display: grid;
+    grid-template-columns: 136px minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+    column-gap: 14px;
+    row-gap: 2px;
+    align-items: start;
+    padding: 6px;
+    border-radius: var(--r-md);
+  }
+  .recent-row .vcard:hover {
+    background: var(--accent-soft);
+  }
+  .recent-row .vthumb {
+    grid-row: 1 / 3;
+  }
+  .recent-row .vtitle {
+    align-self: end;
+    font-size: 14px;
+  }
+  .recent-row .vmeta {
+    align-self: start;
+  }
 }
 .empty {
   color: var(--text-3);

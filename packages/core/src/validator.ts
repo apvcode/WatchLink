@@ -1,11 +1,12 @@
 import {
+  CHAT_REPLY_MAX,
   IMG_CHUNK_CHARS,
   IMG_MAX_CHUNKS,
   MAX_MESSAGE_BYTES,
   PROTOCOL_VERSION,
   RATE_LIMIT_MSG_PER_SEC,
 } from './constants.js';
-import type { CommandAction, MessageType, ProtocolMsg } from './types.js';
+import type { ChatReply, CommandAction, MessageType, ProtocolMsg } from './types.js';
 
 interface RateLimiterEntry {
   tokens: number;
@@ -355,9 +356,35 @@ export class MessageValidator {
         if (typeof data.ts !== 'number' || !Number.isFinite(data.ts)) {
           return { valid: false, reason: 'INVALID_CHAT_TS' };
         }
+        let re: ChatReply | undefined;
+        if (data.re !== undefined) {
+          const r = data.re as Record<string, unknown> | null;
+          if (
+            !r ||
+            typeof r !== 'object' ||
+            typeof r.id !== 'string' ||
+            r.id.length === 0 ||
+            r.id.length > 64 ||
+            typeof r.name !== 'string' ||
+            r.name.length > 48 ||
+            typeof r.text !== 'string' ||
+            r.text.length > CHAT_REPLY_MAX ||
+            (r.img !== undefined && typeof r.img !== 'boolean')
+          ) {
+            return { valid: false, reason: 'INVALID_CHAT_REPLY' };
+          }
+          re = { id: r.id, name: r.name, text: r.text, ...(r.img ? { img: true } : {}) };
+        }
         return {
           valid: true,
-          msg: { v: 2, type: 'chat', id: data.id, text: data.text, ts: data.ts },
+          msg: {
+            v: 2,
+            type: 'chat',
+            id: data.id,
+            text: data.text,
+            ts: data.ts,
+            ...(re ? { re } : {}),
+          },
         };
       }
 

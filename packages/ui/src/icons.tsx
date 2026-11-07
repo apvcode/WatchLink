@@ -16,6 +16,7 @@ export type IconName =
   | 'arrowUp'
   | 'image'
   | 'copy'
+  | 'reply'
   | 'check'
   | 'crown'
   | 'shield'
@@ -148,6 +149,12 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <rect x="9" y="9" width="13" height="13" rx="2" />
       {P('M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1')}
+    </>
+  ),
+  reply: (
+    <>
+      {P('m9 14-5-5 5-5')}
+      {P('M20 20v-7a4 4 0 0 0-4-4H4')}
     </>
   ),
   check: P('M20 6 9 17l-5-5'),

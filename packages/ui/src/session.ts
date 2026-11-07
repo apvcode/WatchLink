@@ -120,6 +120,7 @@ export class Session {
                 senderAvatar: m.isSelf ? s.profile.avatar : avatar,
                 text: m.text,
                 image: m.image,
+                reply: m.reply,
                 timestamp: m.ts,
                 isSelf: m.isSelf,
               },

@@ -1,4 +1,4 @@
-import type { FriendsSnapshot } from '@watchlink/core';
+import type { ChatReply, FriendsSnapshot } from '@watchlink/core';
 import type { Language } from './i18n.js';
 import type { Stats } from './stats.js';
 
@@ -23,6 +23,8 @@ export interface PeerInfo {
 }
 
 export interface ChatMessage {
+  /** The message this one answers. */
+  reply?: ChatReply;
   id: string;
   senderId: string;
   senderName: string;

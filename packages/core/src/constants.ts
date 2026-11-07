@@ -9,6 +9,8 @@ export const PROTOCOL_VERSION = 2;
 
 export const MAX_MESSAGE_BYTES = 8192; // 8 KB hard constraint
 export const RATE_LIMIT_MSG_PER_SEC = 20;
+/** Longest excerpt of a quoted message that travels with a reply. */
+export const CHAT_REPLY_MAX = 140;
 export const MAX_PEERS_PER_ROOM = 8; // 9th gets "room is full"
 
 export const SCHEDULED_START_OFFSET_MS = 250; // synchronized resume delay
