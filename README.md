@@ -26,13 +26,13 @@ Synchronized playback for Linux, Windows and Android.<br>Share a room code, pres
 
 ## Features
 
-- 🔗 **Zero-server rooms.** Peers find each other through public Nostr relays (automatic fallback to MQTT) and talk over encrypted WebRTC data channels. There is no WatchLink backend.
-- ▶️ **Direct playback.** Video loads straight from its origin (YouTube, VK Video, Google Drive links, any HTML5 `<video>`). Media is **never** relayed through WatchLink or anyone else.
-- 🎯 **Tight sync.** Lamport clocks order actions, a drift controller nudges the playback rate (±5 %) for small offsets and seeks for large ones, and a buffering barrier holds everyone while a peer stalls.
-- 🚪 **Late join.** Someone joining mid-movie is aligned to the host automatically.
-- 💬 **Chat and people.** Room chat with photo attachments, avatars, a host role you can hand over, and per-peer sync indicators.
-- 🎨 **Made for the couch.** Dark, glassy interface; playback controls overlay the video on desktop and phone alike; ambient glow on desktop; English and Russian.
-- 🛡️ **Sandboxed content.** Untrusted sites run in an isolated view without Node APIs, with permission requests denied and unsafe navigation blocked.
+- **Zero-server rooms.** Peers find each other through public Nostr relays (automatic fallback to MQTT) and talk over encrypted WebRTC data channels. There is no WatchLink backend.
+- **Direct playback.** Video loads straight from its origin (YouTube, VK Video, Google Drive links, any HTML5 `<video>`). Media is **never** relayed through WatchLink or anyone else.
+- **Tight sync.** Lamport clocks order actions, a drift controller nudges the playback rate (±5 %) for small offsets and seeks for large ones, and a buffering barrier holds everyone while a peer stalls.
+- **Late join.** Someone joining mid-movie is aligned to the host automatically.
+- **Chat and people.** Room chat with photo attachments, avatars, a host role you can hand over, and per-peer sync indicators.
+- **Made for the couch.** Dark, glassy interface; playback controls overlay the video on desktop and phone alike; ambient glow on desktop; English and Russian.
+- **Sandboxed content.** Untrusted sites run in an isolated view without Node APIs, with permission requests denied and unsafe navigation blocked.
 
 ## How it works
 
@@ -143,11 +143,11 @@ node scripts/live-check.mjs # real Electron against YouTube / VK / Google Drive
 
 WatchLink is an early development build (0.2.2).
 
-- ✅ Custom player and two-client YouTube playback verified on Linux with a local signaling relay.
-- ✅ Late join, quality selection, chat and profiles verified in the desktop app.
-- ✅ Windows build (installer and zip) packages successfully; it has not been run on a real Windows machine yet.
-- ⚠️ Public-relay signaling and Linux ↔ Android synchronization have not passed acceptance yet.
-- 🔜 Google account linking for private Google Drive videos (own file browser, read-only access).
+- Custom player and two-client YouTube playback verified on Linux with a local signaling relay.
+- Late join, quality selection, chat and profiles verified in the desktop app.
+- Windows build (installer and zip) packages successfully; it has not been run on a real Windows machine yet.
+- Public-relay signaling and Linux ↔ Android synchronization have not passed acceptance yet.
+- Planned: Google account linking for private Google Drive videos (own file browser, read-only access).
 
 Detailed, dated results live in [`docs/player-verification.md`](docs/player-verification.md).
 
