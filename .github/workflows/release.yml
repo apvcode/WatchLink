@@ -8,6 +8,7 @@
 #   WATCHLINK_GOOGLE_DESKTOP_CLIENT_ID / WATCHLINK_GOOGLE_DESKTOP_CLIENT_SECRET   desktop OAuth client
 #   ANDROID_KEYSTORE_BASE64      base64 of the release keystore:  base64 -w0 watchlink.keystore
 #   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# Without the keystore the Android job is skipped (the APK is built and signed locally instead).
 name: Release
 
 on:
@@ -116,16 +117,25 @@ jobs:
       - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - run: pnpm install --frozen-lockfile
       - name: Restore the release keystore
+        id: keystore
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$KEYSTORE_B64" ]; then echo "No keystore secret: the APK cannot be signed."; exit 1; fi
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: the APK is not built here (build and sign it locally)."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/watchlink.keystore"
           echo "WATCHLINK_KEYSTORE=$RUNNER_TEMP/watchlink.keystore" >> "$GITHUB_ENV"
-      - run: ./gradlew assembleRelease
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+      - if: steps.keystore.outputs.signed == 'true'
+        run: ./gradlew assembleRelease
         working-directory: apps/android
-      - run: cp apps/android/app/build/outputs/apk/release/app-release.apk "watchlink-${TAG#v}.apk"
-      - uses: actions/upload-artifact@v4
+      - if: steps.keystore.outputs.signed == 'true'
+        run: cp apps/android/app/build/outputs/apk/release/app-release.apk "watchlink-${TAG#v}.apk"
+      - if: steps.keystore.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
         with:
           name: android
           path: watchlink-*.apk
